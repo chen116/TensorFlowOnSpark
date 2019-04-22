@@ -18,7 +18,7 @@ from tensorflowonspark import TFCluster
 import mnist_dist
 
 sc = SparkContext(conf=SparkConf().setAppName("mnist_streaming"))
-ssc = StreamingContext(sc, 5)
+ssc = StreamingContext(sc, 30)
 executors = sc._conf.get("spark.executor.instances")
 num_executors = int(executors) if executors is not None else 1
 num_ps = 1
