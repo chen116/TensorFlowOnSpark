@@ -73,7 +73,7 @@ class TFCluster(object):
       :feed_timeout: number of seconds after which data feeding times out (600 sec default)
       :qname: *INTERNAL USE*.
     """
-    logging.info("Feeding training data")
+    logging.info("Feeding training data meow")
     assert self.input_mode == InputMode.SPARK, "TFCluster.train() requires InputMode.SPARK"
     assert qname in self.queues, "Unknown queue: {}".format(qname)
     assert num_epochs >= 0, "num_epochs cannot be negative"
