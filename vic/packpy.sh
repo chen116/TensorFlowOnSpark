@@ -69,9 +69,10 @@ spark-submit \
 --num-executors 4 \
 --executor-memory 4G \
 --archives hdfs:///user/root/Python.zip#Python,mnist/mnist.zip#mnist \
+--jars hdfs:///user/${USER}/tensorflow-hadoop-1.10.0.jar \
 TensorFlowOnSpark/examples/mnist/mnist_data_setup.py \
---output mnist/csv2 \
---format csv2
+--output mnist/tfr \
+--format tfr
 
 hdfs dfs -rm -r mnist_model stream_data temp
 
@@ -133,7 +134,7 @@ hadoop fs -cp temp/part-00000 stream_data
 hadoop fs -cp temp/part-00001 stream_data
 hadoop fs -cp temp/part-00002 stream_data
 hadoop fs -cp temp/part-00003 stream_data
-hadoop fs -mv temp/part-00004 stream_data
+hadoop fs -cp temp/part-00004 stream_data
 hadoop fs -cp temp/part-00005 stream_data
 hadoop fs -cp temp/part-00006 stream_data
 hadoop fs -cp temp/part-00007 stream_data
@@ -183,15 +184,13 @@ TensorFlowOnSpark/examples/mnist/spark/mnist_spark.py \
 --images mnist/csv/train/images \
 --labels mnist/csv/train/labels \
 --mode train \
---model mnist_model_nos
+--model mnist_model_nos2
 
 spark-submit \
 --master yarn \
 --deploy-mode client \
 --driver-class-path ~/hpc/sparklens.jar \
 --queue ${QUEUE} \
---num-executors 2 \
---executor-memory 25G \
 --py-files TensorFlowOnSpark/tfspark.zip,TensorFlowOnSpark/examples/mnist/spark/mnist_dist.py \
 --conf spark.yarn.maxAppAttempts=1 \
 --archives hdfs:///user/root/Python.zip#Python \
@@ -200,7 +199,102 @@ TensorFlowOnSpark/examples/mnist/spark/mnist_spark.py \
 --images mnist/csv/test/images \
 --labels mnist/csv/test/labels \
 --mode inference \
---model mnist_model_nos \
---output predictions_nos
+--model mnist_model_nos2 \
+--output predictions_nos2
 
  hdfs dfs -rm -r /user/root/predictions_nos ; spark-submit  --master yarn --deploy-mode client --queue ${QUEUE} --driver-class-path ~/hpc/sparklens.jar --py-files TensorFlowOnSpark/tfspark.zip,TensorFlowOnSpark/examples/mnist/spark/mnist_dist.py --conf spark.yarn.maxAppAttempts=1 --archives hdfs:///user/root/Python.zip#Python --conf spark.executorEnv.LD_LIBRARY_PATH=$LIB_JVM:$LIB_HDFS TensorFlowOnSpark/examples/mnist/spark/mnist_spark.py --images mnist/csv/test/images --labels mnist/csv/test/labels --mode inference --model mnist_model_nos --output predictions_nos
+
+
+--keras mnist/keras
+
+
+
+
+spark-submit \
+--master yarn \
+--py-files TensorFlowOnSpark/tfspark.zip \
+/user/root/${TFoS_HOME}/examples/mnist/mnist_data_setup.py \
+--output ${TFoS_HOME}/mnist/csv \
+--format csv
+
+
+${SPARK_HOME}/sbin/start-master.sh; ${SPARK_HOME}/sbin/start-slave.sh -c $CORES_PER_WORKER -m 12G ${MASTER}
+
+
+spark-submit \
+--master yarn \
+--py-files TensorFlowOnSpark/tfspark.zip \
+--archives hdfs:///user/root/Python.zip#Python \
+--conf spark.executorEnv.LD_LIBRARY_PATH=$LIB_JVM:$LIB_HDFS \
+TensorFlowOnSpark/examples/mnist/keras/mnist_mlp_estimator.py \
+--input_mode spark \
+--images hdfs://gpu2:9000/user/root/mnist/csv/train/images \
+--labels hdfs://gpu2:9000/user/root/mnist/csv/train/labels \
+--epochs 1 \
+--model_dir hdfs://gpu2:9000/user/root/mnist_model_keras \
+--tensorboard
+
+
+spark-submit \
+--master yarn \
+--py-files TensorFlowOnSpark/tfspark.zip \
+--archives hdfs:///user/root/Python.zip#Python \
+--conf spark.executorEnv.LD_LIBRARY_PATH=$LIB_JVM:$LIB_HDFS \
+TensorFlowOnSpark/examples/mnist/keras/mnist_mlp_estimator.py \
+--input_mode tf \
+--model_dir hdfs://gpu2:9000/user/root//mnist_model_keras_tfr \
+--epochs 5 \
+
+spark-submit \
+--master yarn \
+--py-files TensorFlowOnSpark/tfspark.zip \
+--archives hdfs:///user/root/Python.zip#Python \
+--conf spark.executorEnv.LD_LIBRARY_PATH=$LIB_HDFS \
+${TFoS_HOME}/examples/mnist/keras/mnist_mlp_estimator.py \
+--input_mode tf \
+--model_dir mnist_model_keras_tf  \
+--epochs 5 \
+--tensorboard
+
+spark-submit --master yarn \
+--py-files TensorFlowOnSpark/tfspark.zip \
+--archives hdfs:///user/root/Python.zip#Python \
+--conf spark.executorEnv.LD_LIBRARY_PATH=$LIB_JVM:$LIB_HDFS \
+--jars hdfs:///user/${USER}/tensorflow-hadoop-1.10.0.jar \
+TensorFlowOnSpark/examples/mnist/keras/mnist_inference.py \
+--images_labels hdfs://gpu2:9000/user/root/mnist/tfr/test \
+--export hdfs://gpu2:9000/user/root/mnist_model_keras_tfr/export/serving/* /  \
+--output hdfs://gpu2:9000/user/root/predictions_keras/
+
+
+normal yarn non streaming
+
+spark-submit \
+--master yarn \
+--deploy-mode client \
+--queue ${QUEUE} \
+--py-files TensorFlowOnSpark/tfspark.zip,TensorFlowOnSpark/examples/mnist/tf/mnist_dist.py \
+--conf spark.dynamicAllocation.enabled=false \
+--conf spark.yarn.maxAppAttempts=1 \
+--archives hdfs:///user/${USER}/Python.zip#Python \
+--conf spark.executorEnv.LD_LIBRARY_PATH=$LIB_JVM:$LIB_HDFS \
+TensorFlowOnSpark/examples/mnist/tf/mnist_spark.py \
+--images mnist/tfr/train \
+--format tfr \
+--mode train \
+--model mnist_model_tfr
+
+spark-submit \
+--master yarn \
+--deploy-mode client \
+--queue ${QUEUE} \
+--py-files TensorFlowOnSpark/tfspark.zip,TensorFlowOnSpark/examples/mnist/tf/mnist_dist.py \
+--conf spark.dynamicAllocation.enabled=false \
+--conf spark.yarn.maxAppAttempts=1 \
+--archives hdfs:///user/${USER}/Python.zip#Python \
+--conf spark.executorEnv.LD_LIBRARY_PATH=$LIB_JVM:$LIB_HDFS \
+TensorFlowOnSpark/examples/mnist/tf/mnist_spark.py \
+--images mnist/tfr/test \
+--mode inference \
+--model mnist_model_tfr \
+--output predictions_tfr

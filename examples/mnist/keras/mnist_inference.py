@@ -74,7 +74,7 @@ def inference(it, num_workers, args):
 
       outputs = sess.run(['dense_2/Softmax:0'], feed_dict={'Placeholder:0': img})
       for p in outputs[0]:
-        output_file.write("{}\n".format(np.argmax(p)))
+        output_file.write("meow {} : {}\n".format(lbl,np.argmax(p) ))
     except tf.errors.OutOfRangeError:
       break
 
