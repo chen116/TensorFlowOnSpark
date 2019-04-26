@@ -151,6 +151,7 @@ if __name__ == '__main__':
   if args.input_mode == 'tf':
     # for TENSORFLOW mode, each node will load/train/infer entire dataset in memory per original example
     cluster = TFCluster.run(sc, main_fun, args, args.cluster_size, args.num_ps, args.tensorboard, TFCluster.InputMode.TENSORFLOW, log_dir=args.model_dir, master_node='master')
+    print("meow meow")
     cluster.shutdown()
   else:  # 'spark'
     # for SPARK mode, just use CSV format as an example
