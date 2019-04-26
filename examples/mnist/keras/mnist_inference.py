@@ -83,8 +83,8 @@ def inference(it, num_workers, args):
             truelbl=i
         cnt+=1
         # output_file.write("lbl: {} pred: {}\n".format(truelbl,np.argmax(p) ))
-        #if truelbl!=np.argmax(p):
-        output_file.write("lbl: {} pred: {}\n".format(truelbl,np.argmax(p) ))
+        if truelbl!=np.argmax(p):
+          output_file.write("lbl: {} pred: {}\n".format(truelbl,np.argmax(p) ))
     except tf.errors.OutOfRangeError:
       break
 
