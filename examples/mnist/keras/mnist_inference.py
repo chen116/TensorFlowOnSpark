@@ -60,19 +60,12 @@ def inference(it, num_workers, args):
   # create an output file per spark worker for the predictions
   tf.gfile.MakeDirs(args.output)
   output_file = tf.gfile.GFile("{}/part-{:05d}".format(args.output, worker_num), mode='w')
-  cnt=0
   while True:
     try:
 
       # get images and labels from tf.data.Dataset
       img, lbl = sess.run(['inf_image:0', 'inf_image:1'])
-      if cnt%10==0:
-        cnt=0
-      truelbl=0
-      for i,x in enumerate(lbl[cnt]):
-        if x==1:
-          truelbl=i
-      cnt+=1
+
       # inference by feeding these images and labels into the input tensors
       # you can view the exported model signatures via:
       #     saved_model_cli show --dir <export_dir> --all
@@ -81,8 +74,15 @@ def inference(it, num_workers, args):
       # these tensors will be shown in the "name" field of the signature definitions
 
       outputs = sess.run(['dense_2/Softmax:0'], feed_dict={'Placeholder:0': img})
+      cnt=0
       for p in outputs[0]:
-        output_file.write("meow {} : {}\n".format(cnt,np.argmax(p) ))
+
+        truelbl=0
+        for i,x in enumerate(lbl[cnt]):
+          if x==1:
+            truelbl=i
+        cnt+=1
+        output_file.write("cnt: {} lbl: {} pred: {}\n".format(cnt,truelbl,np.argmax(p) ))
     except tf.errors.OutOfRangeError:
       break
 
