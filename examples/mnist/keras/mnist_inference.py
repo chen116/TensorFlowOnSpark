@@ -46,7 +46,7 @@ def inference(it, num_workers, args):
     norm = tf.constant(255, dtype=tf.float32, shape=(784,))
     image = tf.div(tf.to_float(features['image']), norm)
     label = tf.to_float(features['label'])
-    ptrint((image, label))
+    print((image, label))
     return (image, label)
 
   # define a new tf.data.Dataset (for inferencing)
