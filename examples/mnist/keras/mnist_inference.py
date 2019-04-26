@@ -60,9 +60,9 @@ def inference(it, num_workers, args):
   # create an output file per spark worker for the predictions
   tf.gfile.MakeDirs(args.output)
   output_file = tf.gfile.GFile("{}/part-{:05d}".format(args.output, worker_num), mode='w')
-
   while True:
     try:
+
       # get images and labels from tf.data.Dataset
       img, lbl = sess.run(['inf_image:0', 'inf_image:1'])
 
@@ -75,7 +75,13 @@ def inference(it, num_workers, args):
 
       outputs = sess.run(['dense_2/Softmax:0'], feed_dict={'Placeholder:0': img})
       for p in outputs[0]:
-        output_file.write("meow {} : {}\n".format(lbl,np.argmax(p) ))
+        cnt=0
+        truelbl=0
+        for i,x in enumerate(lbl[cnt]):
+          if x==1:
+            truelbl=i
+        cnt+=1
+        output_file.write("meow {} : {}\n".format(truelbl,np.argmax(p) ))
     except tf.errors.OutOfRangeError:
       break
 
